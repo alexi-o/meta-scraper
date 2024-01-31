@@ -1,11 +1,21 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 from flask_uploads import UploadSet, configure_uploads, IMAGES
+from flask_cors import CORS
 import tensorflow as tf
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
 from PIL import Image
 import os
+import json
+import numpy as np
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.float32):
+            return float(obj)
+        return super(NumpyEncoder, self).default(obj)
 
 app = Flask(__name__)
+CORS(app)
 app.config['UPLOADS_DEFAULT_DEST'] = 'uploads'
 app.config['UPLOADED_PHOTOS_DEST'] = 'uploads'
 photos = UploadSet('photos', IMAGES)
@@ -41,6 +51,18 @@ def index():
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOADS_DEFAULT_DEST'], filename)
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'photo' in request.files:
+        photo = request.files['photo']
+        if photo:
+            filename = photos.save(photo, folder=None)
+            metadata = process_image(os.path.join(app.config['UPLOADS_DEFAULT_DEST'], filename))
+            metadata_json = json.dumps(metadata, cls=NumpyEncoder)
+            return {'metadata': metadata_json, 'image_url': url_for('uploaded_file', filename=filename)}
+    
+    return {'error': 'No file uploaded'}, 400
 
 if __name__ == '__main__':
     app.secret_key = 'your_secret_key_here'
