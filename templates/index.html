@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Image Upload and Metadata Generation</title>
+</head>
+
+<body>
+    <h1>Image Upload and Metadata Generation</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="photo" accept="image/*" required>
+        <button type="submit">Upload and Generate Metadata</button>
+    </form>
+
+    {% if image_url %}
+    <h2>Uploaded Image:</h2>
+    <img src="{{ image_url }}" alt="Uploaded Image" width="300">
+    {% endif %}
+
+    {% if metadata %}
+    <h2>Generated Metadata:</h2>
+    <ul>
+        {% for prediction in metadata %}
+        <li>{{ prediction[1] }} ({{ prediction[2]|round(2)*100 }}%)</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</body>
+
+</html>

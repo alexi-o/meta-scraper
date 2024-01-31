@@ -1,0 +1,39 @@
+# Python-specific ignores
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Virtual environment
+venv/
+
+# Local development configuration
+instance/
+config.py
+
+# IDE or editor-specific files (e.g., Visual Studio Code, PyCharm)
+.vscode/
+.idea/
+
+# Dependency directories
+lib/
+lib64/
+bin/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Compiled Python files
+*.pyc
+
+# Compiled bytecode
+__pycache__/
+
+# Environment-specific settings
+.env
+
+# Uploads folder (you may want to keep uploaded files out of version control)
+uploads/
