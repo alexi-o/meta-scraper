@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify
 from flask_uploads import UploadSet, configure_uploads, IMAGES
 from flask_cors import CORS
 import tensorflow as tf
@@ -23,6 +23,8 @@ configure_uploads(app, photos)
 
 model = MobileNetV2(weights='imagenet')
 
+previous_uploads = []
+
 def process_image(file):
     img = Image.open(file)
     img = img.convert('RGB')
@@ -34,19 +36,14 @@ def process_image(file):
     decoded_predictions = decode_predictions(predictions)
     return decoded_predictions[0]
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST' and 'photo' in request.files:
-        photo = request.files['photo']
-        if photo:
-            filename = photos.save(photo, folder=None)
-            metadata = process_image(os.path.join(app.config['UPLOADS_DEFAULT_DEST'], filename))
-            flash('Metadata generated successfully!')
+@app.route('/')
+def list_uploads():
+    files = os.listdir(app.config['UPLOADS_DEFAULT_DEST'])
+    image_extensions = ('.jpg', '.jpeg', '.png', '.gif')
+    image_files = [file for file in files if file.lower().endswith(image_extensions)]
+    image_urls = [url_for('uploaded_file', filename=file) for file in image_files]
 
-            image_url = url_for('uploaded_file', filename=filename)
-            return render_template('index.html', metadata=metadata, image_url=image_url)
-    
-    return render_template('index.html', metadata=None, image_url=None)
+    return jsonify({'image_urls': image_urls})
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
@@ -60,6 +57,10 @@ def upload():
             filename = photos.save(photo, folder=None)
             metadata = process_image(os.path.join(app.config['UPLOADS_DEFAULT_DEST'], filename))
             metadata_json = json.dumps(metadata, cls=NumpyEncoder)
+
+            # Append upload information to previous_uploads list
+            previous_uploads.append({'image_url': url_for('uploaded_file', filename=filename), 'metadata': metadata_json})
+
             return {'metadata': metadata_json, 'image_url': url_for('uploaded_file', filename=filename)}
     
     return {'error': 'No file uploaded'}, 400
