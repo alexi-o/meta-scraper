@@ -45,6 +45,19 @@ def list_uploads():
 
     return jsonify({'image_urls': image_urls})
 
+@app.route('/delete_all', methods=['POST'])
+def delete_all_files():
+    try:
+        upload_dir = app.config['UPLOADS_DEFAULT_DEST']
+        for file_name in os.listdir(upload_dir):
+            file_path = os.path.join(upload_dir, file_name)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
+        return jsonify({'message': 'All files deleted successfully'})
+    except Exception as e:
+        return jsonify({'error': 'Failed to delete files', 'details': str(e)}), 500
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOADS_DEFAULT_DEST'], filename)
@@ -62,7 +75,7 @@ def upload():
             previous_uploads.append({'image_url': url_for('uploaded_file', filename=filename), 'metadata': metadata_json})
 
             return {'metadata': metadata_json, 'image_url': url_for('uploaded_file', filename=filename)}
-    
+
     return {'error': 'No file uploaded'}, 400
 
 if __name__ == '__main__':
