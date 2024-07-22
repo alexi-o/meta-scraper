@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: meta-scraper
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn -w 4 -b 0.0.0.0:8000 app:app"
+    envVars:
+      - key: FLASK_ENV
+        value: production
