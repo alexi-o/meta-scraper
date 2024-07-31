@@ -1,17 +1,19 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify
+from flask import Flask, request, url_for, send_from_directory, jsonify
 from flask_uploads import UploadSet, configure_uploads, IMAGES
 from flask_cors import CORS
 import tensorflow as tf
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
+from werkzeug.utils import secure_filename
 from PIL import Image
+import subprocess
 import os
 import json
 import numpy as np
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, np.float32):
-            return float(obj)
+        if isinstance(obj, np.generic):
+            return obj.item()
         return super(NumpyEncoder, self).default(obj)
 
 app = Flask(__name__)
@@ -36,10 +38,15 @@ def process_image(file):
     decoded_predictions = decode_predictions(predictions)
     return decoded_predictions[0]
 
+def extract_metadata_with_exiftool(file_path):
+    result = subprocess.run(['exiftool', '-json', file_path], stdout=subprocess.PIPE)
+    metadata = json.loads(result.stdout.decode('utf-8'))[0]
+    return metadata
+
 @app.route('/')
 def list_uploads():
     files = os.listdir(app.config['UPLOADS_DEFAULT_DEST'])
-    image_extensions = ('.jpg', '.jpeg', '.png', '.gif')
+    image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
     image_files = [file for file in files if file.lower().endswith(image_extensions)]
     image_urls = [url_for('uploaded_file', filename=file) for file in image_files]
 
@@ -68,15 +75,51 @@ def upload():
         photo = request.files['photo']
         if photo:
             filename = photos.save(photo, folder=None)
-            metadata = process_image(os.path.join(app.config['UPLOADS_DEFAULT_DEST'], filename))
+            file_path = os.path.join(app.config['UPLOADS_DEFAULT_DEST'], filename)
+            metadata = process_image(file_path)
             metadata_json = json.dumps(metadata, cls=NumpyEncoder)
-
-            # Append upload information to previous_uploads list
             previous_uploads.append({'image_url': url_for('uploaded_file', filename=filename), 'metadata': metadata_json})
 
             return {'metadata': metadata_json, 'image_url': url_for('uploaded_file', filename=filename)}
 
     return {'error': 'No file uploaded'}, 400
+
+@app.route('/extract_metadata', methods=['POST'])
+def extract_metadata():
+    if 'photo' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(app.config['UPLOADS_DEFAULT_DEST'], filename)
+    file.save(file_path)
+
+    # Extract metadata using TensorFlow
+    metadata = process_image(file_path)
+    metadata = json.loads(json.dumps(metadata, cls=NumpyEncoder))
+
+    return jsonify({"metadata": metadata})
+
+@app.route('/extract_exif_metadata', methods=['POST'])
+def extract_exif_metadata():
+    if 'photo' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(app.config['UPLOADS_DEFAULT_DEST'], filename)
+    file.save(file_path)
+
+    # Extract metadata using ExifTool
+    metadata = extract_metadata_with_exiftool(file_path)
+
+    return jsonify({"metadata": metadata})
 
 if __name__ == '__main__':
     app.secret_key = 'your_secret_key_here'
