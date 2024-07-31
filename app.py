@@ -84,7 +84,7 @@ def upload():
 
     return {'error': 'No file uploaded'}, 400
 
-@app.route('/extract_metadata', methods=['POST'])
+@app.route('/image_recognition', methods=['POST'])
 def extract_metadata():
     if 'photo' not in request.files:
         return jsonify({"error": "No file part"}), 400
