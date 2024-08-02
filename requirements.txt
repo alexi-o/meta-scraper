@@ -20,7 +20,7 @@ Flask-Uploads==0.2.1
 Flask-WTF==1.1.1
 flatbuffers==23.3.3
 gast==0.4.0
-google-api-core==2.19.1
+google-api-core[grpc]
 google-api-python-client==2.116.0
 google-auth==2.19.1
 google-auth-httplib2==0.1.0
@@ -34,7 +34,7 @@ google-pasta==0.2.0
 google-resumable-media==2.5.0
 googleapis-common-protos==1.59.0
 grpcio==1.54.2
-grpcio-status==1.48.2
+grpcio-status
 h5py==3.8.0
 httplib2==0.22.0
 idna==3.4
