@@ -35,6 +35,7 @@ google-resumable-media==2.5.0
 googleapis-common-protos==1.59.0
 grpcio==1.54.2
 grpcio-status
+Gunicorn
 h5py==3.8.0
 httplib2==0.22.0
 idna==3.4
