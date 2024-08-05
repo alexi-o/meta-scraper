@@ -58,10 +58,13 @@ def extract_metadata():
         return jsonify({"error": f"Failed to fetch image: {str(e)}"}), 500
 
     # Extract metadata using TensorFlow
-    metadata = process_image(img)
-    metadata = json.loads(json.dumps(metadata, cls=NumpyEncoder))
+    try:
+        metadata = process_image(img)
+        metadata = json.loads(json.dumps(metadata, cls=NumpyEncoder))
+    except Exception as e:
+        return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
 
-    return jsonify({"metadata": metadata})
+    return jsonify({"message": "Image recognition successful", "metadata": metadata})
 
 @app.route('/extract_exif_metadata', methods=['POST'])
 def extract_exif_metadata():
@@ -88,7 +91,7 @@ def extract_exif_metadata():
     except Exception as e:
         return jsonify({"error": f"Failed to extract metadata: {str(e)}"}), 500
 
-    return jsonify({"metadata": metadata})
+    return jsonify({"message": "EXIF metadata extraction successful", "metadata": metadata})
 
 @app.route('/extract_color_palette', methods=['POST'])
 def extract_colors():
@@ -112,7 +115,7 @@ def extract_colors():
     except Exception as e:
         return jsonify({"error": f"Failed to extract color palette: {str(e)}"}), 500
 
-    return jsonify({"palette": palette})
+    return jsonify({"message": "Color palette extraction successful", "palette": palette})
 
 def extract_color_palette(image):
     # Example function to extract colors
