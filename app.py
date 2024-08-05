@@ -39,7 +39,10 @@ def extract_metadata_with_exiftool(file_path):
 def fetch_image_from_url(url):
     response = requests.get(url)
     img = Image.open(BytesIO(response.content))
+    if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+        img = img.convert('RGB')
     return img
+
 
 @app.route('/image_recognition', methods=['POST'])
 def extract_metadata():
