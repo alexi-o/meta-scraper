@@ -9,6 +9,10 @@ import os
 import json
 import numpy as np
 from io import BytesIO
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -19,6 +23,7 @@ class NumpyEncoder(json.JSONEncoder):
 app = Flask(__name__)
 CORS(app)
 
+# Load the model
 model = MobileNetV2(weights='imagenet')
 
 def process_image(image):
@@ -40,9 +45,26 @@ def fetch_image_from_url(url):
     response = requests.get(url)
     img = Image.open(BytesIO(response.content))
     if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
-        img = img.convert('RGB')
+        img = img.convert('RGB')  # Convert RGBA to RGB
     return img
 
+@app.before_request
+def log_request_info():
+    logging.info("Headers: %s", request.headers)
+    logging.info("Body: %s", request.get_data())
+
+@app.after_request
+def log_response_info(response):
+    logging.info("Response status: %s", response.status)
+    return response
+
+@app.route('/')
+def home():
+    return "Welcome to the API", 200
+
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
 
 @app.route('/image_recognition', methods=['POST'])
 def extract_metadata():
@@ -83,7 +105,7 @@ def extract_exif_metadata():
     try:
         img = fetch_image_from_url(image_url)
         file_path = 'temp_image.jpg'
-        img.save(file_path)
+        img.save(file_path, format='JPEG')  # Ensure the image is saved as JPEG
     except Exception as e:
         return jsonify({"error": f"Failed to fetch or save image: {str(e)}"}), 500
 
