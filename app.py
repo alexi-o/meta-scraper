@@ -113,34 +113,6 @@ def extract_exif_metadata():
 
     return jsonify({"message": "EXIF metadata extraction successful", "metadata": metadata})
 
-@app.route('/extract_color_palette', methods=['POST'])
-def extract_colors():
-    data = request.get_json()
-    if 'url' not in data:
-        return jsonify({"error": "No URL provided"}), 400
-
-    image_url = data['url']
-    if not image_url:
-        return jsonify({"error": "Invalid URL"}), 400
-
-    try:
-        img = fetch_image_from_url(image_url)
-    except Exception as e:
-        return jsonify({"error": f"Failed to fetch image: {str(e)}"}), 500
-
-    try:
-        palette = extract_color_palette(img)
-    except Exception as e:
-        return jsonify({"error": f"Failed to extract color palette: {str(e)}"}), 500
-
-    return jsonify({"message": "Color palette extraction successful", "palette": palette})
-
-def extract_color_palette(image):
-    colors = image.getcolors(maxcolors=1000)
-    sorted_colors = sorted(colors, key=lambda x: x[0], reverse=True)
-    palette = [color[1] for color in sorted_colors[:5]]
-    return palette
-
 if __name__ == '__main__':
     app.secret_key = 'your_secret_key_here'
     app.run(debug=True)
