@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import tensorflow as tf
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
+from tensorflow.keras.applications.vgg16 import VGG16
 from PIL import Image
 import subprocess
 import requests
@@ -11,7 +12,6 @@ import numpy as np
 from io import BytesIO
 import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 
 class NumpyEncoder(json.JSONEncoder):
@@ -23,8 +23,7 @@ class NumpyEncoder(json.JSONEncoder):
 app = Flask(__name__)
 CORS(app)
 
-# Load the model
-model = MobileNetV2(weights='imagenet')
+model = VGG16(weights='imagenet')
 
 def process_image(image):
     img = image.convert('RGB')
@@ -45,7 +44,7 @@ def fetch_image_from_url(url):
     response = requests.get(url)
     img = Image.open(BytesIO(response.content))
     if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
-        img = img.convert('RGB')  # Convert RGBA to RGB
+        img = img.convert('RGB')
     return img
 
 @app.before_request
@@ -76,13 +75,11 @@ def extract_metadata():
     if not image_url:
         return jsonify({"error": "Invalid URL"}), 400
 
-    # Fetch the image from the URL
     try:
         img = fetch_image_from_url(image_url)
     except Exception as e:
         return jsonify({"error": f"Failed to fetch image: {str(e)}"}), 500
 
-    # Extract metadata using TensorFlow
     try:
         metadata = process_image(img)
         metadata = json.loads(json.dumps(metadata, cls=NumpyEncoder))
@@ -101,18 +98,16 @@ def extract_exif_metadata():
     if not image_url:
         return jsonify({"error": "Invalid URL"}), 400
 
-    # Fetch the image from the URL
     try:
         img = fetch_image_from_url(image_url)
         file_path = 'temp_image.jpg'
-        img.save(file_path, format='JPEG')  # Ensure the image is saved as JPEG
+        img.save(file_path, format='JPEG')
     except Exception as e:
         return jsonify({"error": f"Failed to fetch or save image: {str(e)}"}), 500
 
-    # Extract metadata using ExifTool
     try:
         metadata = extract_metadata_with_exiftool(file_path)
-        os.remove(file_path)  # Clean up the temporary file
+        os.remove(file_path)
     except Exception as e:
         return jsonify({"error": f"Failed to extract metadata: {str(e)}"}), 500
 
@@ -128,13 +123,11 @@ def extract_colors():
     if not image_url:
         return jsonify({"error": "Invalid URL"}), 400
 
-    # Fetch the image from the URL
     try:
         img = fetch_image_from_url(image_url)
     except Exception as e:
         return jsonify({"error": f"Failed to fetch image: {str(e)}"}), 500
 
-    # Extract color palette
     try:
         palette = extract_color_palette(img)
     except Exception as e:
@@ -143,10 +136,9 @@ def extract_colors():
     return jsonify({"message": "Color palette extraction successful", "palette": palette})
 
 def extract_color_palette(image):
-    # Example function to extract colors
-    colors = image.getcolors(maxcolors=1000)  # Modify maxcolors as needed
+    colors = image.getcolors(maxcolors=1000)
     sorted_colors = sorted(colors, key=lambda x: x[0], reverse=True)
-    palette = [color[1] for color in sorted_colors[:5]]  # Get top 5 colors
+    palette = [color[1] for color in sorted_colors[:5]]
     return palette
 
 if __name__ == '__main__':
